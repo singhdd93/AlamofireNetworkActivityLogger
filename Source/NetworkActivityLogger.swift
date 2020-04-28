@@ -105,35 +105,67 @@ public class NetworkActivityLogger {
     
     @objc private func requestDidStart(notification: Notification) {
         queue.async {
-            print("Requests Count \(notification.request?.tasks.count)")
-            guard let dataRequest = notification.request as? DataRequest,
-                let task = dataRequest.task,
-                let request = task.originalRequest,
-                let httpMethod = request.httpMethod,
-                let requestURL = request.url
-                else {
-                    return
-            }
-            
-            if let filterPredicate = self.filterPredicate, filterPredicate.evaluate(with: request) {
+            guard let dataRequest = notification.request as? DataRequest else {
                 return
             }
+            print("Requests Count \(dataRequest.tasks.count)")
             
-            switch self.level {
-            case .debug:
-                let cURL = dataRequest.cURLDescription()
+            if dataRequest.tasks.count > 0 {
+                guard let task = dataRequest.task,
+                    let request = task.originalRequest,
+                    let httpMethod = request.httpMethod,
+                    let requestURL = request.url
+                else {
+                    return
+                }
                 
-                self.logDivider()
+                if let filterPredicate = self.filterPredicate, filterPredicate.evaluate(with: request) {
+                    return
+                }
                 
-                print("\(httpMethod) '\(requestURL.absoluteString)':")
+                switch self.level {
+                case .debug:
+                    let cURL = dataRequest.cURLDescription()
+                    
+                    self.logDivider()
+                    
+                    print("\(httpMethod) '\(requestURL.absoluteString)':")
+                    
+                    print("cURL:\n\(cURL)")
+                case .info:
+                    self.logDivider()
+                    
+                    print("\(httpMethod) '\(requestURL.absoluteString)'")
+                default:
+                    break
+                }
+            } else {
+                let conv = dataRequest.convertible
+                guard let task = conv.urlRequest,
+                    let httpMethod = task.httpMethod,
+                    let requestURL = task.url else {
+                    return
+                }
+                if let filterPredicate = self.filterPredicate, filterPredicate.evaluate(with: task) {
+                    return
+                }
                 
-                print("cURL:\n\(cURL)")
-            case .info:
-                self.logDivider()
-                
-                print("\(httpMethod) '\(requestURL.absoluteString)'")
-            default:
-                break
+                switch self.level {
+                case .debug:
+                    let cURL = dataRequest.cURLDescription()
+                    
+                    self.logDivider()
+                    
+                    print("\(httpMethod) '\(requestURL.absoluteString)':")
+                    
+                    print("cURL:\n\(cURL)")
+                case .info:
+                    self.logDivider()
+                    
+                    print("\(httpMethod) '\(requestURL.absoluteString)'")
+                default:
+                    break
+                }
             }
         }
     }
@@ -146,8 +178,8 @@ public class NetworkActivityLogger {
                 let request = task.originalRequest,
                 let httpMethod = request.httpMethod,
                 let requestURL = request.url
-                else {
-                    return
+            else {
+                return
             }
             
             if let filterPredicate = self.filterPredicate, filterPredicate.evaluate(with: request) {
@@ -204,7 +236,6 @@ public class NetworkActivityLogger {
                 }
             }
         }
-        
     }
 }
 
@@ -213,7 +244,7 @@ private extension NetworkActivityLogger {
         print("---------------------")
     }
     
-    func logHeaders(headers: [AnyHashable : Any]) {
+    func logHeaders(headers: [AnyHashable: Any]) {
         print("Headers: [")
         for (key, value) in headers {
             print("  \(key): \(value)")
