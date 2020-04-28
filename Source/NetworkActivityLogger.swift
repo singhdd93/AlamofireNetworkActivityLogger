@@ -105,6 +105,7 @@ public class NetworkActivityLogger {
     
     @objc private func requestDidStart(notification: Notification) {
         queue.async {
+            print("Requests Count \(notification.request?.tasks.count)")
             guard let dataRequest = notification.request as? DataRequest,
                 let task = dataRequest.task,
                 let request = task.originalRequest,
